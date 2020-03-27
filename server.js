@@ -137,7 +137,8 @@ const convertFramesToVideo = async function (sessionDir, videoFilePath) {
       '-i', path.join(sessionDir, '%d.png'),
       '-vcodec', 'libx264',
       '-crf', '25',
-      '-pix_fmt', 'yuv420p',
+      // Uncomment this for lower-quality video
+      // '-pix_fmt', 'yuv420p',
       '-progress', 'pipe:1',
       videoFilePath
     ]

@@ -40,6 +40,20 @@ const config = {
 }
 
 /**
+ * Async util to wait for a process to finish before resolving with its output.
+ * @param  {ChildProcess.spawn} ps  Process object
+ * @return {Promise}                Promise that resolves when the process exits
+ */
+const waitForProcess = async function (ps) {
+  return new Promise((resolve, reject) => {
+    let data = ''
+    ps.stdout.on('data', incoming => data += incoming.toString())
+    ps.on('exit', () => resolve(data))
+    ps.on('error', reject)
+  })
+}
+
+/**
  * Write a frame to a file.
  * @param  {String} msg  Some sequential key (generated in client for
  *                       identifying frames in correct order), joined with the
@@ -91,33 +105,26 @@ const sortFrameFiles = async function (sessionDir) {
   console.log(`[✨] Finished renaming ${sortedFiles.length} files`)
 }
 
+/**
+ * Get image dimensions string ("<width>x<height>") for the first frame in
+ * the session directory to use as part of ffmpeg CLI arguments. Note that
+ * the output from the `file` command contains extra spaces to be removed.
+ */
 const getFrameDimensions = async function (sessionDir) {
-    /**
-     * Get image dimensions string ("<width>x<height>") for the first frame in
-     * the session directory to use as part of ffmpeg CLI arguments. Note that
-     * the output from the `file` command contains extra spaces to be removed.
-     */
     const filenames = await fs.readdir(sessionDir)
     const firstFrameFilename = path.join(sessionDir, filenames[0])
-    const dimsPs = spawn('file', [firstFrameFilename])
 
-    return await new Promise((resolve, reject) => {
-      dimsPs.stdout.on('data', data => {
-        const output = data.toString()
-        if (!output) {
-          reject()
-        }
-        const match = output.match(/(\d+ x \d+)/)
-        if (!match) {
-          reject()
-        }
-        resolve(match[1].replace(/\s/g, ''))
-      })
-    })
+    const dimsPs = spawn('file', [firstFrameFilename])
+    const output = await waitForProcess(dimsPs)
+
+    const match = output && output.match(/(\d+ x \d+)/)
+    if (!output || !match) {
+      throw 'Could not get image dimensions!'
+    }
+    return match[1].replace(/\s/g, '')
 }
 
 const convertFramesToVideo = async function (sessionDir, videoFilePath) {
-  // TODO error checking
   try {
     // Get image dimensions string for ffmpeg arguments
     const dimensions = await getFrameDimensions(sessionDir)
@@ -135,18 +142,18 @@ const convertFramesToVideo = async function (sessionDir, videoFilePath) {
       videoFilePath
     ]
     // Spawn a process that runs the ffmpeg conversion command
-    const ps = spawn('ffmpeg', ffmpegArgs, { shell: true })
+    const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, { shell: true })
 
-    // Pipe output to shell so we can see progress
-    ps.stdout.pipe(process.stdout)
+    // Pipe output to this stdout so we can see progress
+    ffmpegProcess.stdout.pipe(process.stdout)
 
     // Wait for the process to finish
-    await new Promise(resolve => ps.on('exit', resolve))
+    await waitForProcess(ffmpegProcess)
 
     console.log(`[🎉] Created video from frames in ${sessionDir}`)
   } catch (e) {
     console.error(e)
-    throw '[😬] Error converting frames!'
+    throw 'Error converting frames!'
   }
 }
 

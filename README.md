@@ -37,6 +37,10 @@ function render () {
 
 - Control various ffmpeg parameters: video quality, color, video file type, etc
 
+- Currently using inner async functions in WebSocket event handlers because I'm
+not sure if the `ws` library can gracefully accept/handle async event
+callbacks – figure this out and clean up the code
+
 - Explicit command to generate video instead of only doing it when the socket
 connection is closed
 

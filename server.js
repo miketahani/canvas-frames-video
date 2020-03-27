@@ -1,11 +1,11 @@
 /**
  * Create a video from individual image frames coming from a client.
  *
- * Creates a WebSocket server that receives frame data from clients. Client
- * messages (individual frames) are strings composed of a unique, sequential,
- * numeric ID (like a timestamp, frame index, etc), concatenated with a
- * base64-encoded image/png string that represents a single frame. Each frame
- * is saved to disk using the sequential ID, and when the user has finished
+ * Creates a WebSocket server that receives frame data from clients. The
+ * client messages (individual frames) are strings composed of a unique,
+ * sequential numeric ID (like a timestamp, frame index, etc), concatenated with
+ * a base64-encoded image/png string that represents a single frame. Each frame
+ * is saved to disk using the provided sequential ID. When the user has finished
  * capture, the frames are ordered and renamed to a ffmpeg-friendly, numeric
  * sequence based on the original sequential frame ID, so the frames can be
  * converted to video easily. The frames are then converted to a video and
@@ -18,9 +18,12 @@
  *
  * To send frames:
  * ```
- *   // inside the render loop...
+ * let frameIndex = 0
+ * function render () {
+ *   // ...render logic...
  *   const frame = canvas.toDataURL('image/png')
- *   websocket.send((frameId++) + frame) // or `Date.now() + frame`, etc
+ *   websocketClient.send((frameIndex++) + frame) // or `Date.now() + frame`, etc
+ * }
  * ```
  */
 const fs = require('fs').promises

@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset='utf8'>
+    <title>Canvas frames to video example</title>
+  </head>
+  <body>
+    <div id='root'></div>
+
+    <script src='https://unpkg.com/three@latest/build/three.min.js'></script>
+    <script>
+      const width = 512
+      const height = 512
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000)
+
+      const renderer = new THREE.WebGLRenderer()
+      renderer.setSize(width, height)
+      document.body.appendChild(renderer.domElement)
+
+      const geometry = new THREE.BoxGeometry()
+      const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
+      const cube = new THREE.Mesh(geometry, material)
+      scene.add(cube)
+
+      camera.position.z = 2
+
+      const ws = new WebSocket('ws://localhost:7000')
+      ws.addEventListener('open', render)
+      ws.addEventListener('error', () => alert('Couldn\'t open socket'))
+
+      let frameIndex = 0
+
+      function render () {
+        requestAnimationFrame(render)
+
+        cube.rotation.x += 0.01
+        cube.rotation.y += 0.01
+
+        renderer.render(scene, camera)
+
+        const frame = renderer.domElement.toDataURL('image/png')
+        ws.send((frameIndex++) + frame)
+      }
+    </script>
+  </body>
+</html>

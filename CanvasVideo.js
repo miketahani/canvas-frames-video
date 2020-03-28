@@ -37,14 +37,13 @@ const { spawn } = require('child_process')
  * @param  {ChildProcess.spawn} ps  Process object
  * @return {Promise}                Promise that resolves when the process exits
  */
-const waitForProcess = async function (ps) {
-  return new Promise((resolve, reject) => {
+const waitForProcess = async ps =>
+  new Promise((resolve, reject) => {
     let data = ''
     ps.stdout.on('data', incoming => data += incoming.toString())
     ps.on('exit', () => resolve(data))
     ps.on('error', reject)
-  })
-}
+  });
 
 class CanvasVideo {
   constructor (clientId, config) {
@@ -69,36 +68,6 @@ class CanvasVideo {
 
     // Create image output directory
     await fs.mkdir(this.sessionDir, { recursive: true })
-  }
-
-  // Sort/rename frame files, convert frames to video, delete frame files
-  async createVideo () {
-    await this._sortFrameFiles()
-    await this._convertFramesToVideo()
-    await this._deleteFrames()
-  }
-
-  /**
-   * Write a frame to a file.
-   * @param  {String} msg  Some sequential key (generated in client for
-   *                       identifying frames in correct order), joined with the
-   *                       base64-encoded image/png string.
-   */
-  async storeFrame (msg) {
-    /**
-     * A sequential key is concatenated with the base64 image string in the
-     * client and we need the headerless image string to save a valid png, so just
-     * split the incoming message by the header to get those pieces.
-     */
-    const [sequentialKey, imgStr] = msg.split('data:image/png;base64,')
-
-    await fs.writeFile(
-      path.join(this.sessionDir, `${sequentialKey}.png`),
-      imgStr,
-      'base64'
-    )
-
-    // console.log(`[⚡️] ${this.clientId}: Wrote file ${filePath}`)
   }
 
   // Rename all files to be ffmpeg-friendly (sequential, starting from zero)
@@ -164,6 +133,36 @@ class CanvasVideo {
   async _deleteFrames () {
     await fs.rmdir(this.sessionDir, { recursive: true })
     console.log(`[💥] ${this.clientId}: Deleted frames`)
+  }
+
+  // Sort/rename frame files, convert frames to video, delete frame files
+  async createVideo () {
+    await this._sortFrameFiles()
+    await this._convertFramesToVideo()
+    await this._deleteFrames()
+  }
+
+  /**
+   * Write a frame to a file.
+   * @param  {String} msg  Some sequential key (generated in client for
+   *                       identifying frames in correct order), joined with the
+   *                       base64-encoded image/png string.
+   */
+  async storeFrame (msg) {
+    /**
+     * A sequential key is concatenated with the base64 image string in the
+     * client and we need the headerless image string to save a valid png, so just
+     * split the incoming message by the header to get those pieces.
+     */
+    const [sequentialKey, imgStr] = msg.split('data:image/png;base64,')
+
+    await fs.writeFile(
+      path.join(this.sessionDir, `${sequentialKey}.png`),
+      imgStr,
+      'base64'
+    )
+
+    // console.log(`[⚡️] ${this.clientId}: Wrote file ${filePath}`)
   }
 }
 

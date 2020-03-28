@@ -13,10 +13,7 @@ const config = {
   port: 7000
 }
 
-// WebSocket server
-const wss = new WebSocket.Server({ port: config.port })
-console.log('[📡] Started WebSocket server')
-wss.on('connection', ws => {
+const handleWebSocketClientConnection = function (ws) {
   const clientId = uuidv4()
 
   console.log(`[🛰 ] ${clientId}: New client connection`)
@@ -29,4 +26,10 @@ wss.on('connection', ws => {
     console.log(`[💀] ${clientId}: End client connection`)
     vid.createVideo()
   })
-})
+}
+
+// WebSocket server
+const wss = new WebSocket.Server({ port: config.port })
+console.log('[📡] Started WebSocket server')
+
+wss.on('connection', handleWebSocketClientConnection)

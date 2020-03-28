@@ -28,12 +28,9 @@
  * }
  * ```
  */
-
-
 const fs = require('fs').promises
 const path = require('path')
 const { spawn } = require('child_process')
-const { v4: uuidv4 } = require('uuid')
 
 /**
  * Async util to wait for a process to finish before resolving with its output.
@@ -50,41 +47,35 @@ const waitForProcess = async function (ps) {
 }
 
 class CanvasVideo {
-  constructor (clientWebSocket, config) {
+  constructor (clientId, config) {
     if (!config) {
       throw 'Missing a config!'
     }
 
     this.clientId = null
+    this.outputDirPath = null
     this.sessionDir = null
 
-    this.ws = clientWebSocket
-    this.init(clientWebSocket, config)
+    this.createVideo = this.createVideo.bind(this)
+    this.storeFrame = this.storeFrame.bind(this)
+
+    this._init(clientId, config)
   }
 
-  async init (ws, config) {
-    const outputDirPath = path.join(__dirname, config.outputDir)
-
-    this.clientId = uuidv4()
-    this.sessionDir = path.join(outputDirPath, this.clientId)
-
-    console.log(`[🛰 ] ${this.clientId}: New client connection`)
+  async _init (clientId, config) {
+    this.clientId = clientId
+    this.outputDirPath = path.join(__dirname, config.outputDir)
+    this.sessionDir = path.join(this.outputDirPath, this.clientId)
 
     // Create image output directory
     await fs.mkdir(this.sessionDir, { recursive: true })
+  }
 
-    ws.on('message', msg => this.writeFrameToFile(msg))
-    ws.on('close', () => {
-      (async () => {
-        console.log(`[💀] ${this.clientId}: End client connection`)
-
-        const videoOutputPath = path.join(outputDirPath, `${this.clientId}.mp4`)
-
-        await this.sortFrameFiles()
-        await this.convertFramesToVideo(videoOutputPath)
-        await this.deleteFrames()
-      })()
-    })
+  // Sort/rename frame files, convert frames to video, delete frame files
+  async createVideo () {
+    await this._sortFrameFiles()
+    await this._convertFramesToVideo()
+    await this._deleteFrames()
   }
 
   /**
@@ -93,7 +84,7 @@ class CanvasVideo {
    *                       identifying frames in correct order), joined with the
    *                       base64-encoded image/png string.
    */
-  async writeFrameToFile (msg) {
+  async storeFrame (msg) {
     /**
      * A sequential key is concatenated with the base64 image string in the
      * client and we need the headerless image string to save a valid png, so just
@@ -110,10 +101,8 @@ class CanvasVideo {
     // console.log(`[⚡️] ${this.clientId}: Wrote file ${filePath}`)
   }
 
-  /**
-   * Rename all files to be ffmpeg-friendly (sequential, starting from zero)
-   */
-  async sortFrameFiles () {
+  // Rename all files to be ffmpeg-friendly (sequential, starting from zero)
+  async _sortFrameFiles () {
     const filenames = await fs.readdir(this.sessionDir)
 
     /**
@@ -137,48 +126,25 @@ class CanvasVideo {
     console.log(`[✨] ${this.clientId}: Finished renaming ${sortedFiles.length} files`)
   }
 
-  /**
-   * Get image dimensions string ("<width>x<height>") for the first frame in
-   * the session directory to use as part of ffmpeg CLI arguments. Note that
-   * the output from the `file` command contains extra spaces to be removed.
-   */
-  async getFrameDimensions () {
-      const filenames = await fs.readdir(this.sessionDir)
-      const firstFrameFilename = path.join(this.sessionDir, filenames[0])
-
-      const dimsPs = spawn('file', [firstFrameFilename])
-      const output = await waitForProcess(dimsPs)
-
-      const match = output && output.match(/(\d+ x \d+)/)
-      if (!output || !match) {
-        throw 'Could not get image dimensions!'
-      }
-
-      return match[1].replace(/\s/g, '')
-  }
-
-  async convertFramesToVideo (videoFilePath) {
+  async _convertFramesToVideo () {
     console.log(`[⏳] ${this.clientId}: Converting frames to video...`)
 
+    // These arguments need to be in order
+    const ffmpegArgs = [
+      '-r', '60',
+      '-f', 'image2',
+      // '-s', dimensionString,
+      '-i', path.join(this.sessionDir, '%d.png'),
+      '-vcodec', 'libx264',
+      '-crf', '18',
+      // Uncomment these for lower-quality video
+      // '-crf', '25',
+      // '-pix_fmt', 'yuv420p',
+      '-progress', 'pipe:1',
+      path.join(this.outputDirPath, `${this.clientId}.mp4`)
+    ]
+
     try {
-      // Get image dimensions string for ffmpeg arguments
-      const dimensions = await this.getFrameDimensions(this.sessionDir)
-
-      // These arguments need to be in order
-      const ffmpegArgs = [
-        '-r', '60',
-        '-f', 'image2',
-        '-s', dimensions,
-        '-i', path.join(this.sessionDir, '%d.png'),
-        '-vcodec', 'libx264',
-        '-crf', '18',
-        // Uncomment these for lower-quality video
-        // '-crf', '25',
-        // '-pix_fmt', 'yuv420p',
-        '-progress', 'pipe:1',
-        videoFilePath
-      ]
-
       // Spawn a process that runs the ffmpeg conversion command
       const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, { shell: true })
 
@@ -195,7 +161,7 @@ class CanvasVideo {
     }
   }
 
-  async deleteFrames () {
+  async _deleteFrames () {
     await fs.rmdir(this.sessionDir, { recursive: true })
     console.log(`[💥] ${this.clientId}: Deleted frames`)
   }

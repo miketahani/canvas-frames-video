@@ -125,6 +125,8 @@ const getFrameDimensions = async function (sessionDir) {
 }
 
 const convertFramesToVideo = async function (sessionDir, videoFilePath) {
+  console.log(`[⏳] Converting frames to video in ${sessionDir}...`)
+
   try {
     // Get image dimensions string for ffmpeg arguments
     const dimensions = await getFrameDimensions(sessionDir)
@@ -136,8 +138,9 @@ const convertFramesToVideo = async function (sessionDir, videoFilePath) {
       '-s', dimensions,
       '-i', path.join(sessionDir, '%d.png'),
       '-vcodec', 'libx264',
-      '-crf', '25',
-      // Uncomment this for lower-quality video
+      '-crf', '18',
+      // Uncomment these for lower-quality video
+      // '-crf', '25',
       // '-pix_fmt', 'yuv420p',
       '-progress', 'pipe:1',
       videoFilePath
@@ -146,7 +149,7 @@ const convertFramesToVideo = async function (sessionDir, videoFilePath) {
     const ffmpegProcess = spawn('ffmpeg', ffmpegArgs, { shell: true })
 
     // Pipe output to this stdout so we can see progress
-    ffmpegProcess.stdout.pipe(process.stdout)
+    // ffmpegProcess.stdout.pipe(process.stdout)
 
     // Wait for the process to finish
     await waitForProcess(ffmpegProcess)

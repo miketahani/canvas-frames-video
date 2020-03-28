@@ -4,6 +4,8 @@
  * This is the server.
  */
 const WebSocket = require('ws')
+const { v4: uuidv4 } = require('uuid')
+
 const { CanvasVideo } = require('./CanvasVideo')
 
 const config = {
@@ -14,4 +16,17 @@ const config = {
 // WebSocket server
 const wss = new WebSocket.Server({ port: config.port })
 console.log('[📡] Started WebSocket server')
-wss.on('connection', ws => new CanvasVideo(ws, config))
+wss.on('connection', ws => {
+  const clientId = uuidv4()
+
+  console.log(`[🛰 ] ${clientId}: New client connection`)
+
+  const vid = new CanvasVideo(clientId, config)
+
+  ws.on('message', vid.storeFrame)
+
+  ws.on('close', () => {
+    console.log(`[💀] ${clientId}: End client connection`)
+    vid.createVideo()
+  })
+})

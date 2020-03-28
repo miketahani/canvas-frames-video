@@ -3,13 +3,15 @@
  *
  * This is the server.
  */
+const path = require('path')
+
 const WebSocket = require('ws')
 const { v4: uuidv4 } = require('uuid')
 
 const { CanvasVideo } = require('./CanvasVideo')
 
 const config = {
-  outputDir: 'output',
+  outputDir: path.join(__dirname, 'output'),
   port: 7000
 }
 
@@ -18,9 +20,11 @@ const handleWebSocketClientConnection = function (ws) {
 
   console.log(`[🛰 ] ${clientId}: New client connection`)
 
-  const vid = new CanvasVideo(clientId, config)
+  const vid = new CanvasVideo(clientId, config.outputDir)
 
-  ws.on('message', vid.storeFrame)
+  ws.on('message', msg => {
+    vid.storeFrame(msg)
+  })
 
   ws.on('close', () => {
     console.log(`[💀] ${clientId}: End client connection`)

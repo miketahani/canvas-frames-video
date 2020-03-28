@@ -46,25 +46,18 @@ const waitForProcess = async ps =>
   });
 
 class CanvasVideo {
-  constructor (clientId, config) {
-    if (!config) {
-      throw 'Missing a config!'
-    }
-
+  constructor (clientId, outputDir) {
     this.clientId = null
-    this.outputDirPath = null
+    this.outputDir = null
     this.sessionDir = null
 
-    this.createVideo = this.createVideo.bind(this)
-    this.storeFrame = this.storeFrame.bind(this)
-
-    this._init(clientId, config)
+    this._init(clientId, outputDir)
   }
 
-  async _init (clientId, config) {
+  async _init (clientId, outputDir) {
     this.clientId = clientId
-    this.outputDirPath = path.join(__dirname, config.outputDir)
-    this.sessionDir = path.join(this.outputDirPath, this.clientId)
+    this.outputDir = config.outputDir
+    this.sessionDir = path.join(this.outputDir, this.clientId)
 
     // Create image output directory
     await fs.mkdir(this.sessionDir, { recursive: true })
@@ -110,7 +103,7 @@ class CanvasVideo {
       // '-crf', '25',
       // '-pix_fmt', 'yuv420p',
       '-progress', 'pipe:1',
-      path.join(this.outputDirPath, `${this.clientId}.mp4`)
+      path.join(this.outputDir, `${this.clientId}.mp4`)
     ]
 
     try {

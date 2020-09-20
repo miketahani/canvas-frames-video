@@ -56,7 +56,7 @@ class CanvasVideo {
 
   async _init (clientId, outputDir) {
     this.clientId = clientId
-    this.outputDir = config.outputDir
+    this.outputDir = outputDir
     this.sessionDir = path.join(this.outputDir, this.clientId)
 
     // Create image output directory

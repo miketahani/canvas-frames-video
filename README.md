@@ -19,7 +19,7 @@ converted to video easily. The frames are then converted to a video and deleted.
 
 ### Sending frames
 
-Frames can come anywhere and are passed via WebSocket as string messages. The
+Frames can come from anywhere and are passed via WebSocket as string messages. The
 messages are composed of a unique, sequential, numeric ID (like a timestamp,
 frame index, etc), concatenated with a base64-encoded image/png string that
 represents a single frame.

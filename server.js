@@ -15,20 +15,35 @@ const config = {
   port: 7000
 }
 
+const Status = {
+  Receiving: 'RECEIVING',
+  Done: 'DONE'
+}
+
 const handleWebSocketClientConnection = function (ws) {
   const clientId = uuidv4()
+  let status = Status.Receiving
 
   console.log(`[🛰 ] ${clientId}: New client connection`)
 
   const vid = new CanvasVideo(clientId, config.outputDir)
 
   ws.on('message', msg => {
+    if (msg === Status.Done) {
+      console.log(`[💀] ${clientId}: Done. Creating video.`)
+      status = Status.Done
+      vid.createVideo()
+      return
+    }
     vid.storeFrame(msg)
   })
 
   ws.on('close', () => {
     console.log(`[💀] ${clientId}: End client connection`)
-    vid.createVideo()
+
+    // Only create the video if we didn't get an explicit "done" message before
+    //  (i.e., we haven't created the video)
+    if (status !== Status.Done) vid.createVideo()
   })
 }
 

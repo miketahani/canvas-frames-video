@@ -94,14 +94,12 @@ class CanvasVideo {
     // These arguments need to be in order
     const ffmpegArgs = [
       '-r', '60',
-      '-f', 'image2',
+      // '-f', 'image2',
       // '-s', dimensionString,
       '-i', path.join(this.sessionDir, '%d.png'),
-      '-vcodec', 'libx264',
-      '-crf', '18',
-      // Uncomment these for lower-quality video
-      // '-crf', '25',
-      // '-pix_fmt', 'yuv420p',
+      // '-vcodec', 'libx265',
+      '-crf', '15',
+      '-pix_fmt', 'yuv420p', // Necessary for macOS compatibility
       '-progress', 'pipe:1',
       path.join(this.outputDir, `${this.clientId}.mp4`)
     ]

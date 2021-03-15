@@ -17,6 +17,11 @@ converted to video easily. The frames are then converted to a video and deleted.
 
 - [file](https://linux.die.net/man/1/file) for determining image sizes
 
+### Quickstart
+
+- `$ npm start` to run server
+- Send frames (see next section)
+
 ### Sending frames
 
 Frames can come from anywhere and are passed via WebSocket as string messages. The
@@ -25,7 +30,9 @@ frame index, etc), concatenated with a base64-encoded image/png string that
 represents a single frame.
 
 ```js
+const websocketClient = new WebSocket('ws://localhost:7000') // Replace URL if necessary
 let frameIndex = 0
+
 function render () {
   // ...render logic...
   const frame = canvas.toDataURL('image/png')

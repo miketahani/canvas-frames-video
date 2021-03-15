@@ -20,6 +20,7 @@
  *
  * To send frames:
  * ```
+ * const websocketClient = new WebSocket('ws://localhost:7000') // Replace URL if necessary
  * let frameIndex = 0
  * function render () {
  *   // ...render logic...
